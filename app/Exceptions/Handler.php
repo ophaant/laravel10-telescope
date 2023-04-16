@@ -69,6 +69,10 @@ class Handler extends ExceptionHandler
             return self::error(config('response.http_exception'), $exception->getMessage(), $exception->getStatusCode());
         }
 
+        if ($exception instanceof \ParseError) {
+            return self::error(config('response.internal_server_error'), $exception->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
         if (config('app.debug')) {
             return parent::render($request, $exception);
         }
