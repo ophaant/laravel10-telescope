@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\LoginRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -41,5 +42,25 @@ class AuthController extends Controller
             throw new \HttpResponseException(self::error(config('response.internal_server_error'), $e->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR));
         }
 
+    }
+
+    public function login(LoginRequest $request): JsonResponse
+    {
+        DB::beginTransaction();
+        try {
+            $credentials = $request->only('email', 'password');
+
+            if (!auth()->attempt($credentials)) {
+                return self::error(config('response.unauthorized'), null, Response::HTTP_UNAUTHORIZED);
+            }
+
+            $token = auth()->user()->createToken('authToken')->accessToken;
+
+            DB::commit();
+            return self::success(config('response.login_success'), ['token'=>$token], null, Response::HTTP_OK);
+        }catch (\Throwable $e) {
+            DB::rollBack();
+            throw new \HttpResponseException(self::error(config('response.internal_server_error'), $e->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR));
+        }
     }
 }
