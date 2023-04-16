@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
@@ -22,7 +23,7 @@ class AuthController extends Controller
             ]);
 
             if ($validator->fails()) {
-                return response()->json($validator->errors(), 422);
+                return self::error(config('response.validation_error'), $validator->errors(), Response::HTTP_UNPROCESSABLE_ENTITY);
             }
 
             $user = User::create([
@@ -34,10 +35,10 @@ class AuthController extends Controller
             $token = $user->createToken('authToken')->accessToken;
 
             DB::commit();
-            return response()->json(['success'=>true,'token' => $token], 200);
-        }catch (\Exception $e) {
+            return self::success(config('response.register_success'), ['token'=>$token], null, Response::HTTP_CREATED);
+        }catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['error' => $e->getMessage()], 500);
+            throw new \HttpResponseException(self::error(config('response.internal_server_error'), $e->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR));
         }
 
     }
