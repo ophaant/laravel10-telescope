@@ -30,6 +30,10 @@ return [
         'code' => 404,
         'message' => 'Not Found',
     ],
+    'url_not_found' => [
+        'code' => 404,
+        'message' => 'Url Not Found',
+    ],
     'method_not_allowed' => [
         'code' => 405,
         'message' => 'Method Not Allowed',
@@ -41,5 +45,9 @@ return [
     'internal_server_error' => [
         'code' => 500,
         'message' => 'Internal Server Error',
+    ],
+    'http_exception' => [
+        'code' => 500,
+        'message' => 'Http Exception',
     ],
 ];
