@@ -17,10 +17,17 @@ return [
         'code' => 400,
         'message' => 'Login Failed',
     ],
-
+    'logout_success' => [
+        'code' => 200,
+        'message' => 'Logout Successfully',
+    ],
     'unauthorized' => [
         'code' => 401,
         'message' => 'Unauthorized',
+    ],
+    'unauthenticated' => [
+        'code' => 401,
+        'message' => 'Token is invalid',
     ],
     'forbidden' => [
         'code' => 403,

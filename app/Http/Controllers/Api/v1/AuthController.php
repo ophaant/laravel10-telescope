@@ -9,7 +9,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Throwable;
 
 class AuthController extends Controller
 {
@@ -36,10 +38,10 @@ class AuthController extends Controller
             $token = $user->createToken('authToken')->accessToken;
 
             DB::commit();
-            return self::success(config('response.register_success'), ['token'=>$token], null, Response::HTTP_CREATED);
-        }catch (\Throwable $e) {
+            return self::success(config('response.register_success'), ['token' => $token], null, Response::HTTP_CREATED);
+        } catch (Throwable $e) {
             DB::rollBack();
-            throw new \HttpResponseException(self::error(config('response.internal_server_error'), $e->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR));
+            throw new HttpResponseException(self::error(config('response.internal_server_error'), $e->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR));
         }
 
     }
@@ -54,13 +56,37 @@ class AuthController extends Controller
                 return self::error(config('response.unauthorized'), null, Response::HTTP_UNAUTHORIZED);
             }
 
-            $token = auth()->user()->createToken('authToken')->accessToken;
+            $token = auth()->user()->createToken('authToken');
+
+            $data = [
+                'token' => $token->accessToken,
+                'token_type' => 'Bearer',
+                'expires_at' => $token->token->expires_at->diffForHumans(),
+            ];
 
             DB::commit();
-            return self::success(config('response.login_success'), ['token'=>$token], null, Response::HTTP_OK);
-        }catch (\Throwable $e) {
+            return self::success(config('response.login_success'), $data, null, Response::HTTP_OK);
+        } catch (Throwable $e) {
             DB::rollBack();
-            throw new \HttpResponseException(self::error(config('response.internal_server_error'), $e->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR));
+            Log::error($e->getMessage());
+            throw new \Exception($e->getMessage());
+        }
+    }
+
+    public function logout(Request $request): JsonResponse
+    {
+        DB::beginTransaction();
+        try {
+            if ($request->user()) {
+                $request->user()->token()->revoke();
+            }
+
+            DB::commit();
+            return self::success(config('response.logout_success'), null,null, Response::HTTP_OK);
+        } catch (Throwable $e) {
+            DB::rollBack();
+            Log::error($e->getMessage());
+            throw new \Exception(self::error(config('response.internal_server_error'), $e->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR));
         }
     }
 }

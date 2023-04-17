@@ -3,9 +3,12 @@
 namespace App\Exceptions;
 
 use App\Traits\APIResponse;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use League\OAuth2\Server\Exception\OAuthServerException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
@@ -53,7 +56,15 @@ class Handler extends ExceptionHandler
 
     public function handleException($request, Throwable $exception)
     {
+        if ($exception instanceof AuthenticationException) {
+            Log::error($exception->getMessage());
+            return self::error(config('response.unauthorized'), null, Response::HTTP_UNAUTHORIZED);
+        }
 
+        if ($exception instanceof OAuthServerException) {
+            Log::error($exception->getMessage());
+            return self::error(config('response.unauthenticated'), null, Response::HTTP_UNAUTHORIZED);
+        }
         if ($exception instanceof MethodNotAllowedHttpException) {
             return self::error(config('response.method_not_allowed'), null, Response::HTTP_METHOD_NOT_ALLOWED);
         }
@@ -73,11 +84,15 @@ class Handler extends ExceptionHandler
             return self::error(config('response.internal_server_error'), $exception->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR);
         }
 
-        if (config('app.debug')) {
-            return parent::render($request, $exception);
+        if ($exception instanceof \PDOException) {
+            return self::error(config('response.internal_server_error'), $exception->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR);
         }
 
-        return self::error(config('response.internal_server_error'), null, Response::HTTP_INTERNAL_SERVER_ERROR);
+//        if (config('app.debug')) {
+//            return parent::render($request, $exception);
+//        }
+
+        return self::error(config('response.internal_server_error'), $exception->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR);
 
     }
 }
